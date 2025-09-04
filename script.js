@@ -25,6 +25,12 @@ class MinimalistCompassApp {
         this.bindEvents();
         this.getCurrentLocation();
         this.initDeviceOrientation();
+
+        // Verify target is fixed
+        console.log('Fixed Target Location:', this.targetPosition);
+
+        // Add test method to verify compass
+        this.testCompass();
     }
 
     bindEvents() {
@@ -89,6 +95,18 @@ class MinimalistCompassApp {
         this.isOrientationSupported = false;
     }
 
+    testCompass() {
+        // Test with a known location to verify compass is working
+        console.log('Testing compass with fixed target...');
+        console.log('Target coordinates:', this.targetPosition);
+
+        // Test bearing calculation
+        const testLat = 10.0; // Test location
+        const testLng = 106.0;
+        const testBearing = this.calculateBearing(testLat, testLng, this.targetPosition.lat, this.targetPosition.lng);
+        console.log(`Test bearing from (${testLat}, ${testLng}) to target: ${testBearing.toFixed(1)}°`);
+    }
+
     async getCurrentLocation() {
         if (!navigator.geolocation) {
             this.showError('Trình duyệt không hỗ trợ định vị địa lý');
@@ -146,6 +164,12 @@ class MinimalistCompassApp {
             this.targetPosition.lng
         );
 
+        // Debug logging
+        console.log(`Current Position: ${this.currentPosition.lat.toFixed(6)}, ${this.currentPosition.lng.toFixed(6)}`);
+        console.log(`Target Position: ${this.targetPosition.lat.toFixed(6)}, ${this.targetPosition.lng.toFixed(6)}`);
+        console.log(`Magnetic Bearing: ${this.magneticBearing.toFixed(1)}°`);
+        console.log(`Distance: ${distance.toFixed(1)} km`);
+
         // Update compass based on device orientation if supported
         if (this.isOrientationSupported) {
             this.updateCompassWithOrientation();
@@ -173,6 +197,7 @@ class MinimalistCompassApp {
         const targetBearing = this.magneticBearing;
 
         // Calculate the relative angle between device heading and target bearing
+        // The arrow should point in the direction of the target relative to device orientation
         let relativeAngle = targetBearing - deviceHeading;
 
         // Normalize to -180 to 180 range
@@ -180,7 +205,11 @@ class MinimalistCompassApp {
         while (relativeAngle < -180) relativeAngle += 360;
 
         // Rotate arrow to point to target relative to device orientation
+        // The arrow should point in the direction of the target
         this.rotateCompassArrow(relativeAngle);
+
+        // Debug logging
+        console.log(`Device Heading: ${deviceHeading.toFixed(1)}°, Target Bearing: ${targetBearing.toFixed(1)}°, Relative Angle: ${relativeAngle.toFixed(1)}°`);
     }
 
     calculateBearing(lat1, lng1, lat2, lng2) {
@@ -214,6 +243,9 @@ class MinimalistCompassApp {
         const rotation = bearing;
 
         this.compassArrow.style.transform = `rotate(${rotation}deg)`;
+
+        // Debug logging for arrow rotation
+        console.log(`Arrow rotated to: ${rotation.toFixed(1)}°`);
     }
 
     setLoading(loading) {
