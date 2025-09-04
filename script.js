@@ -13,8 +13,10 @@ class MinimalistCompassApp {
         this.targetLocationDisplay = document.getElementById('targetLocationDisplay');
         this.distanceDisplay = document.getElementById('distance');
 
-        // GPS bearing to target
+        // Device orientation
+        this.deviceOrientation = { alpha: 0, beta: 0, gamma: 0 };
         this.magneticBearing = 0; // Bearing to target from GPS
+        this.isOrientationSupported = false;
 
         this.init();
     }
@@ -22,6 +24,7 @@ class MinimalistCompassApp {
     init() {
         this.bindEvents();
         this.getCurrentLocation();
+        this.initDeviceOrientation();
 
         // Verify target is fixed
         console.log('Fixed Target Location:', this.targetPosition);
@@ -40,7 +43,57 @@ class MinimalistCompassApp {
         // });
     }
 
-    // Device orientation not needed for fixed-point compass
+    initDeviceOrientation() {
+        if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+            // iOS 13+ requires permission - show permission dialog
+            this.showPermissionDialog();
+        } else if (typeof DeviceOrientationEvent !== 'undefined') {
+            // Android and older iOS
+            this.startDeviceOrientation();
+        } else {
+            console.log('Device orientation not supported');
+            this.fallbackToGPSOnly();
+        }
+    }
+
+    showPermissionDialog() {
+        const permissionDialog = document.getElementById('compassPermission');
+        const enableButton = document.getElementById('enableCompass');
+
+        permissionDialog.style.display = 'flex';
+
+        enableButton.addEventListener('click', () => {
+            DeviceOrientationEvent.requestPermission()
+                .then(response => {
+                    if (response === 'granted') {
+                        permissionDialog.style.display = 'none';
+                        this.startDeviceOrientation();
+                    } else {
+                        console.log('Device orientation permission denied');
+                        this.fallbackToGPSOnly();
+                        permissionDialog.style.display = 'none';
+                    }
+                })
+                .catch(console.error);
+        });
+    }
+
+    startDeviceOrientation() {
+        this.isOrientationSupported = true;
+        window.addEventListener('deviceorientation', (event) => {
+            this.deviceOrientation = {
+                alpha: event.alpha, // Compass direction (0-360)
+                beta: event.beta,   // Front-to-back tilt
+                gamma: event.gamma  // Left-to-right tilt
+            };
+            this.updateCompassWithOrientation();
+        });
+    }
+
+    fallbackToGPSOnly() {
+        console.log('Using GPS-only mode');
+        this.isOrientationSupported = false;
+    }
 
     testCompass() {
         // Test with a known location to verify compass is working
@@ -117,9 +170,13 @@ class MinimalistCompassApp {
         console.log(`Magnetic Bearing: ${this.magneticBearing.toFixed(1)}°`);
         console.log(`Distance: ${distance.toFixed(1)} km`);
 
-        // Always use GPS bearing only - arrow should always point to fixed target
-        // regardless of device orientation
-        this.rotateCompassArrow(this.magneticBearing);
+        // Update compass based on device orientation if supported
+        if (this.isOrientationSupported) {
+            this.updateCompassWithOrientation();
+        } else {
+            // Fallback to GPS-only mode
+            this.rotateCompassArrow(this.magneticBearing);
+        }
 
         // Thêm hiệu ứng thành công
         this.compassArrow.classList.add('success');
@@ -128,7 +185,32 @@ class MinimalistCompassApp {
         }, 600);
     }
 
-    // updateCompassWithOrientation method removed - not needed for fixed-point compass
+    updateCompassWithOrientation() {
+        if (!this.isOrientationSupported || this.deviceOrientation.alpha === null) {
+            return;
+        }
+
+        // Calculate the relative bearing considering device orientation
+        // deviceOrientation.alpha is the compass direction (0-360)
+        // We need to adjust the arrow rotation based on device orientation
+        const deviceHeading = this.deviceOrientation.alpha;
+        const targetBearing = this.magneticBearing;
+
+        // Calculate the relative angle between device heading and target bearing
+        // The arrow should point in the direction of the target relative to device orientation
+        let relativeAngle = targetBearing - deviceHeading;
+
+        // Normalize to -180 to 180 range
+        while (relativeAngle > 180) relativeAngle -= 360;
+        while (relativeAngle < -180) relativeAngle += 360;
+
+        // Rotate arrow to point to target relative to device orientation
+        // The arrow should point in the direction of the target
+        this.rotateCompassArrow(relativeAngle);
+
+        // Debug logging
+        console.log(`Device Heading: ${deviceHeading.toFixed(1)}°, Target Bearing: ${targetBearing.toFixed(1)}°, Relative Angle: ${relativeAngle.toFixed(1)}°`);
+    }
 
     calculateBearing(lat1, lng1, lat2, lng2) {
         const dLng = (lng2 - lng1) * Math.PI / 180;
@@ -207,8 +289,36 @@ class CompassEnhancements {
     }
 
     addTouchGestures() {
-        // Touch gestures removed - compass should always point to fixed target
-        // No manual rotation allowed
+        const compass = document.querySelector('.arrow-compass');
+        let startAngle = 0;
+        let currentAngle = 0;
+
+        compass.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const rect = compass.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+
+            startAngle = Math.atan2(touch.clientY - centerY, touch.clientX - centerX);
+        });
+
+        compass.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            // Target is always fixed, so we can always allow touch interaction
+
+            const touch = e.touches[0];
+            const rect = compass.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+
+            const angle = Math.atan2(touch.clientY - centerY, touch.clientX - centerX);
+            const deltaAngle = angle - startAngle;
+
+            // Cập nhật góc xoay tạm thời
+            currentAngle = deltaAngle * 180 / Math.PI;
+            this.compassApp.compassArrow.style.transform = `rotate(${currentAngle}deg)`;
+        });
     }
 
     addKeyboardShortcuts() {

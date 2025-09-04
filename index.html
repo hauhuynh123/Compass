@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>La Bàn Ảo</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="container">
+        <!-- Minimalist Arrow Compass -->
+        <div class="arrow-compass">
+            <div class="arrow" id="compassArrow">
+                <svg width="359" height="586" viewBox="0 0 359 586" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path
+                        d="M219.051 199.512L306.45 316.673L359 235.623L179.777 0.5L0 235.623L52.5501 316.673L139.949 199.512V585.5H219.051V199.512Z"
+                        fill="white" />
+                </svg>
+            </div>
+        </div>
+
+        <!-- Hidden Control Panel -->
+        <div class="control-panel" style="display: none;">
+            <div class="input-group">
+                <input type="text" id="targetLocation" placeholder="Nhập địa điểm đích...">
+                <button id="setLocation">Tìm</button>
+            </div>
+
+            <div class="info-display">
+                <div class="target-info" id="targetInfo">
+                    <span id="targetLocationDisplay">Chưa đặt đích</span>
+                    <span id="distance">-- km</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Compass Permission Button (iOS) -->
+        <div id="compassPermission" class="compass-permission" style="display: none;">
+            <div class="permission-content">
+                <h3>Kích hoạt la bàn</h3>
+                <p>Để la bàn hoạt động chính xác, vui lòng cho phép truy cập cảm biến định hướng</p>
+                <button id="enableCompass">Kích hoạt la bàn</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
